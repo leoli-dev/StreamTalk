@@ -37,10 +37,8 @@ final class ChatViewModel: ObservableObject {
             self.talkButtonTapped()
         }
         hotkey.start()
-
-        // Pre-warm the TTS server so the first reply isn't cold/slow.
-        let server = config.ttsServerURL
-        Task { await self.tts.warmup(server: server) }
+        // Note: the TTS server auto-warms on startup; an app-side warmup only
+        // contends with real requests on the single-GPU queue, so we don't.
     }
 
     // MARK: - Session selection
