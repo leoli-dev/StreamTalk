@@ -4,6 +4,11 @@
 
 一个原生 macOS **语音聊天** app:按住按钮(或轻点**左 ⌥ Option** 键)说话,AI **用语音回复你** —— 回答边生成边一句句念出来,你听到第一句时,后面还在生成。
 
+<p align="center">
+  <img src="assets/hero.png" alt="StreamTalk 界面" width="420"><br>
+  <a href="https://youtube.com/shorts/YFn4D4NkLi8">▶ 观看演示视频</a>
+</p>
+
 ```
 你说话 ─▶ Apple 语音识别(STT) ─▶ 大模型(流式) ─▶ 切成一句句
                                                       │

@@ -6,6 +6,11 @@ A native macOS **voice chat** app: hold a button (or tap the **left ⌥ Option**
 key), talk, and the AI replies **out loud** — streaming the answer sentence by
 sentence so you hear the first words while the rest is still being generated.
 
+<p align="center">
+  <img src="assets/hero.png" alt="StreamTalk UI" width="420"><br>
+  <a href="https://youtube.com/shorts/YFn4D4NkLi8">▶ Watch a short demo</a>
+</p>
+
 ```
 You speak ─▶ Apple Speech (STT) ─▶ LLM (streaming) ─▶ split into sentences
                                                           │
