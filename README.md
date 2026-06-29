@@ -48,8 +48,12 @@ Content-Type: application/json
 ```
 
 - app 会发送 `input` + `response_format: "wav"` + `instruct`(instruct 携带方言/风格,由所选「回复语言」推导)。
-- 只要你的服务能接受这个请求并返回系统能解码的 WAV 即可。参考实现:CosyVoice3 的 FastAPI 服务(`/v1/audio/speech`,返回 24kHz 单声道 WAV)。
-- `GET {TTS_SERVER}/health` 返回 `200` 是加分项,非必须。
+- 只要你的服务能接受这个请求并返回系统能解码的 WAV 即可。
+- **配套服务(推荐直接用):**
+  [**cosyvoice-fastapi-server**](https://github.com/leoli-dev/cosyvoice-fastapi-server)
+  —— 自托管的 CosyVoice3 FastAPI 封装 + Windows 启动脚本,在你内网机器上跑。
+  它实现了 `POST /v1/audio/speech`(返回 24kHz 单声道 WAV),外加 `GET /health`、
+  `POST /warmup`。在 TTS 机器上部署它,然后把 `STREAMTALK_TTS_SERVER` 指向它即可。
 
 > `tts-proxy/` 目录是早期版本遗留的可选 Python 桥接(Gradio / Triton gRPC 适配),**当前版本用不到** —— app 直接调用 TTS 的 HTTP 接口。
 

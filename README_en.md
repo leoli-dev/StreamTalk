@@ -61,9 +61,13 @@ Content-Type: application/json
 - The app sends `input` + `response_format: "wav"` + `instruct` (the instruct
   string carries the dialect/style, derived from the selected reply language).
 - Any service that accepts that request and returns a WAV the system can decode
-  will work. Reference implementation: the CosyVoice3 FastAPI server
-  (`/v1/audio/speech`, returns 24 kHz mono WAV).
-- A `GET {TTS_SERVER}/health` returning `200` is nice to have but not required.
+  will work.
+- **Companion server (recommended):**
+  [**cosyvoice-fastapi-server**](https://github.com/leoli-dev/cosyvoice-fastapi-server)
+  — a self-hosted FastAPI wrapper + Windows scripts for running CosyVoice3 on
+  your LAN. It implements `POST /v1/audio/speech` (24 kHz mono WAV), plus
+  `GET /health` and `POST /warmup`. Deploy it on your TTS machine and point
+  `STREAMTALK_TTS_SERVER` at it.
 
 > The `tts-proxy/` directory contains an optional legacy Python bridge (Gradio /
 > Triton gRPC adapters) from earlier iterations. It is **not needed** for the
