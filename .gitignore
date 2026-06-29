@@ -1,0 +1,24 @@
+# secrets / local config
+.env
+*.env
+!.env.example
+
+# Swift build artifacts
+StreamTalk/.build/
+StreamTalk/StreamTalk.app/
+*.swiftpm
+.DS_Store
+
+# Python (legacy tts-proxy)
+tts-proxy/.venv/
+**/__pycache__/
+*.pyc
+
+# generated / local assets & outputs
+tts-proxy/voices/*.wav
+tts-proxy/outputs/
+*.log
+
+# PC-side server ops notes (machine-specific paths / LAN IPs — not the app)
+COSYVOICE_GPU_FIX.md
+COSYVOICE_TRITON_TOKEN2WAV_FIX.md
