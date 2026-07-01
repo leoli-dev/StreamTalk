@@ -174,13 +174,13 @@ source).
 ## Repo layout
 
 ```
-StreamTalk/        SwiftUI app (Swift Package) + build-app.sh + Info.plist
-  Sources/StreamTalk/
-    ChatViewModel   orchestrator (STT → LLM → chunk → TTS → playback)
-    LLMProvider / OpenAICompatibleProvider / ClaudeProvider
-    SpeechRecognizer / SentenceChunker / TTSProvider / AudioPlayer
-    SessionStore / Config / Models / MainView / SettingsView
-  icon/            app icon generator + assets
+build-app.sh / setup-signing.sh / Package.swift / Info.plist   SwiftUI app (Swift Package)
+Sources/StreamTalk/
+  ChatViewModel   orchestrator (STT → LLM → chunk → TTS → playback)
+  LLMProvider / OpenAICompatibleProvider / ClaudeProvider
+  SpeechRecognizer / SentenceChunker / TTSProvider / AudioPlayer
+  SessionStore / Config / Models / MainView / SettingsView
+icon/            app icon generator + assets
 .env.example       config template (copy to ~/.config/streamtalk/.env)
 ```
 

@@ -4,8 +4,8 @@
 !.env.example
 
 # Swift build artifacts
-StreamTalk/.build/
-StreamTalk/StreamTalk.app/
+.build/
+StreamTalk.app/
 *.swiftpm
 .DS_Store
 

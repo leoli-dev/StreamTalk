@@ -138,13 +138,13 @@ STREAMTALK_MELOTTS_SERVER=http://你的TTS主机:5065
 ## 目录结构
 
 ```
-StreamTalk/        SwiftUI app(Swift Package)+ build-app.sh + Info.plist
-  Sources/StreamTalk/
-    ChatViewModel   编排器（STT → LLM → 切句 → TTS → 播放）
-    LLMProvider / OpenAICompatibleProvider / ClaudeProvider
-    SpeechRecognizer / SentenceChunker / TTSProvider / AudioPlayer
-    SessionStore / Config / Models / MainView / SettingsView
-  icon/            应用图标生成脚本与资源
+build-app.sh / setup-signing.sh / Package.swift / Info.plist   SwiftUI app(Swift Package)
+Sources/StreamTalk/
+  ChatViewModel   编排器（STT → LLM → 切句 → TTS → 播放）
+  LLMProvider / OpenAICompatibleProvider / ClaudeProvider
+  SpeechRecognizer / SentenceChunker / TTSProvider / AudioPlayer
+  SessionStore / Config / Models / MainView / SettingsView
+icon/            应用图标生成脚本与资源
 .env.example       配置模板（复制到 ~/.config/streamtalk/.env）
 ```
 
