@@ -28,8 +28,8 @@
     <string>StreamTalk 需要麦克风来听你说话。</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>StreamTalk 需要语音识别把你的话转成文字。</string>
-    <!-- Needed so the app (and its TTS-proxy child) can reach the LAN
-         CosyVoice server (e.g. pc-lan.home / 10.44.44.x). -->
+    <!-- Needed so the app can reach the LAN TTS server
+         (e.g. pc-lan.home / 10.44.44.x). -->
     <key>NSLocalNetworkUsageDescription</key>
     <string>StreamTalk 需要访问内网来连接你内网 PC 上的 TTS 服务器。</string>
     <!-- The TTS server is plain HTTP on the LAN (http://pc-lan.home:5055).

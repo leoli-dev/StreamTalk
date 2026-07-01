@@ -18,7 +18,8 @@ You speak ─▶ Apple Speech (STT) ─▶ LLM (streaming) ─▶ split into sen
 ```
 
 Built in SwiftUI. Talks to **any OpenAI-compatible / Anthropic LLM** and a
-**CosyVoice-style TTS HTTP service** that you host yourself.
+**TTS HTTP service you host yourself** (pluggable providers built in — CosyVoice
+and MeloTTS — switch between them in Settings).
 
 > ⚠️ **Prerequisite: you must already have a TTS service running** (and an LLM).
 > StreamTalk is just the client — it does **not** ship a TTS engine. See
@@ -42,6 +43,8 @@ Built in SwiftUI. Talks to **any OpenAI-compatible / Anthropic LLM** and a
   replies in English, etc. (粤语 / 普通话 / English).
 - 🧠 **Multiple LLM providers** — local OpenAI-compatible (e.g. an MLX server),
   OpenAI, Claude, DeepSeek, MiniMax — switch from the toolbar.
+- 🗣 **Pluggable TTS backends** — CosyVoice (dialect/style instruct) or MeloTTS
+  (multi-language + speaker), switch in Settings; each has its own server address.
 
 ---
 
@@ -51,32 +54,33 @@ You provide two backends; StreamTalk connects to them.
 
 ### 1. A TTS service (required)
 
-An HTTP endpoint compatible with the **CosyVoice FastAPI** shape:
+The app ships two pluggable TTS providers (pick one under "TTS Provider" in
+Settings; each keeps its own server address, speed, etc.). Both share the same
+HTTP shape:
 
 ```
 POST {TTS_SERVER}/v1/audio/speech
 Content-Type: application/json
 
-{ "input": "text to speak", "response_format": "wav",
-  "instruct": "请用广东话表达，语气清晰、自然。" }
-
 → 200, body = audio bytes (WAV)
 ```
 
-- The app sends `input` + `response_format: "wav"` + `instruct` (the instruct
-  string carries the dialect/style, derived from the selected reply language).
-- Any service that accepts that request and returns a WAV the system can decode
-  will work.
-- **Companion server (recommended):**
+- **CosyVoice** — body is `{ "input", "response_format": "wav", "instruct", "speed" }`.
+  `instruct` is a natural-language string carrying dialect/tone, derived from the
+  selected reply language. Supports Cantonese / Mandarin / English. Default
+  `http://127.0.0.1:5055`.
+  **Companion server (recommended):**
   [**cosyvoice-fastapi-server**](https://github.com/leoli-dev/cosyvoice-fastapi-server)
   — a self-hosted FastAPI wrapper + Windows scripts for running CosyVoice3 on
   your LAN. It implements `POST /v1/audio/speech` (24 kHz mono WAV), plus
   `GET /health` and `POST /warmup`. Deploy it on your TTS machine and point
   `STREAMTALK_TTS_SERVER` at it.
-
-> The `tts-proxy/` directory contains an optional legacy Python bridge (Gradio /
-> Triton gRPC adapters) from earlier iterations. It is **not needed** for the
-> current build — the app calls the TTS HTTP API directly.
+- **MeloTTS** — body is `{ "input", "response_format": "wav", "speed", "language", "speaker"? }`.
+  Picks the model by language code (no dialect instruct); supports Mandarin /
+  English / Spanish / French / Japanese / Korean (no Cantonese). Default
+  `http://127.0.0.1:5065`, overridable with `STREAMTALK_MELOTTS_SERVER`.
+- Any service that accepts the matching request and returns a WAV the system can
+  decode will work — these two are just the built-in shapes, not a requirement.
 
 ### 2. An LLM (required — pick one)
 
@@ -127,6 +131,7 @@ STREAMTALK_LOCAL_KEY=your-local-llm-key
 STREAMTALK_LLM_BASE=http://127.0.0.1:8000/v1
 STREAMTALK_LLM_MODEL=your-model-id
 STREAMTALK_TTS_SERVER=http://your-tts-host:5055
+STREAMTALK_MELOTTS_SERVER=http://your-tts-host:5065
 ```
 
 Lookup order: `$STREAMTALK_ENV` → `~/.config/streamtalk/.env` → `./.env`.
@@ -173,10 +178,9 @@ StreamTalk/        SwiftUI app (Swift Package) + build-app.sh + Info.plist
   Sources/StreamTalk/
     ChatViewModel   orchestrator (STT → LLM → chunk → TTS → playback)
     LLMProvider / OpenAICompatibleProvider / ClaudeProvider
-    SpeechRecognizer / SentenceChunker / TTSClient / AudioPlayer
+    SpeechRecognizer / SentenceChunker / TTSProvider / AudioPlayer
     SessionStore / Config / Models / MainView / SettingsView
   icon/            app icon generator + assets
-tts-proxy/         optional legacy Python TTS bridge (not used by current build)
 .env.example       config template (copy to ~/.config/streamtalk/.env)
 ```
 

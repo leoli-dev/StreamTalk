@@ -9,14 +9,8 @@ StreamTalk/StreamTalk.app/
 *.swiftpm
 .DS_Store
 
-# Python (legacy tts-proxy)
-tts-proxy/.venv/
 **/__pycache__/
 *.pyc
-
-# generated / local assets & outputs
-tts-proxy/voices/*.wav
-tts-proxy/outputs/
 *.log
 
 # PC-side server ops notes (machine-specific paths / LAN IPs — not the app)
