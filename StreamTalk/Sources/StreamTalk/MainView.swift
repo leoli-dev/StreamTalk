@@ -84,6 +84,15 @@ struct ChatView: View {
         .toolbar { toolbarContent }
         .navigationTitle(store.session(vm.currentSessionID ?? UUID())?.title ?? "StreamTalk")
         .navigationSubtitle(statusText)
+        // Sheet (not popover): presents reliably even when the prompt button
+        // collapses into the toolbar's `>>` overflow menu on a narrow window.
+        .sheet(isPresented: $showPrompt) {
+            if let id = vm.currentSessionID {
+                SessionPromptEditor(sessionID: id, isPresented: $showPrompt)
+                    .environmentObject(store)
+                    .environmentObject(config)
+            }
+        }
     }
 
     private var transcript: some View {
@@ -158,21 +167,17 @@ struct ChatView: View {
             .pickerStyle(.menu).help("你说话的识别语言（STT 输入）")
 
             Picker("回复语言", selection: $config.voiceLanguage) {
-                ForEach(VoiceLanguage.allCases) { Text("🔊 " + $0.displayName).tag($0) }
+                ForEach(config.selectedTTSProvider.supportedLanguages) {
+                    Text("🔊 " + $0.displayName).tag($0)
+                }
             }
-            .pickerStyle(.menu).help("AI 回复的语音/文字语言（TTS 输出）")
+            .pickerStyle(.menu)
+            .help("AI 回复的语音/文字语言（\(config.selectedTTSProvider.displayName) 支持的语言）")
 
             Button { showPrompt = true } label: {
                 Image(systemName: promptCustomized ? "text.bubble.fill" : "text.bubble")
             }
             .help("本对话的提示词")
-            .popover(isPresented: $showPrompt, arrowEdge: .bottom) {
-                if let id = vm.currentSessionID {
-                    SessionPromptEditor(sessionID: id, isPresented: $showPrompt)
-                        .environmentObject(store)
-                        .environmentObject(config)
-                }
-            }
 
             SettingsLink { Image(systemName: "gearshape") }
                 .help("设置")

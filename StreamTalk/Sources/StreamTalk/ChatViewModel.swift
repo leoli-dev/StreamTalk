@@ -15,7 +15,6 @@ final class ChatViewModel: ObservableObject {
     let store: SessionStore
     private let config = Config.shared
     private lazy var speech = SpeechRecognizer(localeIdentifier: config.sttLocale)
-    private let tts = TTSClient()
     private let player = AudioPlayer()
     private let hotkey = HotkeyManager()
 
@@ -149,8 +148,9 @@ final class ChatViewModel: ObservableObject {
         // is always appended.
         let base = store.session(sid)?.systemPrompt ?? config.systemPrompt
         let system = base + "\n" + config.voiceLanguage.replyHint
-        let serverURL = config.ttsServerURL
-        let instruct = config.voiceLanguage.ttsInstruct
+        let ttsProvider = TTSProviderFactory.make(kind: config.selectedTTSProvider,
+                                                  settings: config.currentTTS)
+        let voiceLanguage = config.voiceLanguage
 
         let (stream, continuation) = AsyncStream<String>.makeStream()
         sentenceContinuation = continuation
@@ -164,9 +164,7 @@ final class ChatViewModel: ObservableObject {
                 // punctuation) — the TTS model returns 500 "no audio" for them.
                 guard let speak = Self.speakable(sentence) else { continue }
                 do {
-                    let wav = try await self.tts.synthesize(speak,
-                                                            server: serverURL,
-                                                            instruct: instruct)
+                    let wav = try await ttsProvider.synthesize(speak, language: voiceLanguage)
                     if Task.isCancelled { break }
                     await MainActor.run {
                         self.lastError = nil

@@ -18,8 +18,16 @@ cp "$BIN" "$APP/Contents/MacOS/StreamTalk"
 cp Info.plist "$APP/Contents/Info.plist"
 [ -f icon/AppIcon.icns ] && cp icon/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-echo "==> ad-hoc signing"
-codesign --force --deep --sign - "$APP"
+# Prefer the stable self-signed identity (see setup-signing.sh) so macOS keeps
+# Accessibility / Local Network grants across rebuilds. Fall back to ad-hoc.
+IDENTITY="StreamTalk Self-Signed"
+if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
+    echo "==> signing with '$IDENTITY'"
+    codesign --force --deep --sign "$IDENTITY" "$APP"
+else
+    echo "==> ad-hoc signing (run ./setup-signing.sh for a stable identity)"
+    codesign --force --deep --sign - "$APP"
+fi
 
 echo "==> done: $(pwd)/$APP"
 echo "    open $APP   # launches the StreamTalk window"

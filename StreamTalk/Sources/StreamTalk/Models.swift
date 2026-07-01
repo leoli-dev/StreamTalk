@@ -108,10 +108,61 @@ struct ProviderSettings: Codable, Equatable {
     }
 }
 
+// MARK: - TTS providers
+
+/// A configurable TTS backend. Each kind maps 1:1 to a `TTSProviderSettings`
+/// entry in `Config.ttsProviders`, mirroring the LLM `ProviderKind` design.
+enum TTSProviderKind: String, Codable, CaseIterable, Identifiable {
+    case cosyvoice, melotts
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .cosyvoice: return "CosyVoice"
+        case .melotts:   return "MeloTTS"
+        }
+    }
+
+    var defaultServerURL: String {
+        switch self {
+        case .cosyvoice: return "http://127.0.0.1:5055"
+        case .melotts:   return "http://127.0.0.1:5065"
+        }
+    }
+
+    /// MeloTTS is voice/speaker-based; CosyVoice is instruct/mode-based.
+    /// Controls which extra field the settings editor shows.
+    var usesSpeaker: Bool { self == .melotts }
+
+    /// Reply / TTS output languages this provider can actually speak.
+    /// CosyVoice steers dialect via a natural-language instruct (粤/普/英);
+    /// MeloTTS has fixed language models (no Cantonese, but adds ES/FR/JP/KR).
+    var supportedLanguages: [VoiceLanguage] {
+        switch self {
+        case .cosyvoice: return [.cantonese, .mandarin, .english]
+        case .melotts:   return [.mandarin, .english, .spanish, .french, .japanese, .korean]
+        }
+    }
+}
+
+struct TTSProviderSettings: Codable, Equatable {
+    var serverURL: String
+    var speed: Double
+    /// CosyVoice: "自然语言控制" / "3s极速复刻" / "跨语种复刻" (blank = server default).
+    var mode: String
+    /// MeloTTS: optional speaker key for the selected language (blank = auto).
+    var speaker: String
+
+    static func defaults(for kind: TTSProviderKind) -> TTSProviderSettings {
+        TTSProviderSettings(serverURL: kind.defaultServerURL,
+                            speed: 1.0, mode: "", speaker: "")
+    }
+}
+
 // MARK: - Voice / reply language
 
 enum VoiceLanguage: String, Codable, CaseIterable, Identifiable {
-    case cantonese, mandarin, english
+    case cantonese, mandarin, english, spanish, french, japanese, korean
     var id: String { rawValue }
 
     var displayName: String {
@@ -119,6 +170,10 @@ enum VoiceLanguage: String, Codable, CaseIterable, Identifiable {
         case .cantonese: return "粤语"
         case .mandarin: return "普通话"
         case .english: return "English"
+        case .spanish: return "Español"
+        case .french: return "Français"
+        case .japanese: return "日本語"
+        case .korean: return "한국어"
         }
     }
 
@@ -128,6 +183,23 @@ enum VoiceLanguage: String, Codable, CaseIterable, Identifiable {
         case .cantonese: return "请用自然、清晰的香港粤语口语表达。"
         case .mandarin: return "请用自然、清晰的普通话表达。"
         case .english: return "Please speak in natural, clear English."
+        case .spanish: return "Por favor, habla en español natural y claro."
+        case .french: return "Veuillez parler dans un français naturel et clair."
+        case .japanese: return "自然で明瞭な日本語で話してください。"
+        case .korean: return "자연스럽고 명확한 한국어로 말해 주세요."
+        }
+    }
+
+    /// MeloTTS language code. MeloTTS has no Cantonese, so it falls back to
+    /// Mandarin (`ZH`); dialect nuance is lost but Chinese text still speaks.
+    var melottsLanguage: String {
+        switch self {
+        case .cantonese, .mandarin: return "ZH"
+        case .english: return "EN"
+        case .spanish: return "ES"
+        case .french: return "FR"
+        case .japanese: return "JP"
+        case .korean: return "KR"
         }
     }
 
@@ -141,6 +213,14 @@ enum VoiceLanguage: String, Codable, CaseIterable, Identifiable {
             return "【回复语言·最高优先级】无论用户用什么语言说话（包括粤语、英文），你都必须始终只用自然口语化的简体中文普通话回复，绝不要使用粤语字词或其他语言。"
         case .english:
             return "[Reply language · TOP PRIORITY] Always respond ONLY in natural, conversational English, no matter what language the user speaks. Never switch to Chinese."
+        case .spanish:
+            return "[Idioma de respuesta · MÁXIMA PRIORIDAD] Responde SIEMPRE únicamente en español natural y conversacional, sin importar el idioma del usuario."
+        case .french:
+            return "[Langue de réponse · PRIORITÉ ABSOLUE] Réponds TOUJOURS uniquement en français naturel et conversationnel, quelle que soit la langue de l'utilisateur."
+        case .japanese:
+            return "【返信言語・最優先】ユーザーがどの言語で話しても、必ず自然で口語的な日本語のみで返信してください。"
+        case .korean:
+            return "【답변 언어·최우선】사용자가 어떤 언어로 말하든 항상 자연스럽고 구어체의 한국어로만 답변하세요."
         }
     }
 
@@ -150,6 +230,10 @@ enum VoiceLanguage: String, Codable, CaseIterable, Identifiable {
         case .cantonese: return "yue-CN"   // Apple 的粤语代码（zh-HK 其实偏普通话）
         case .mandarin: return "zh-CN"
         case .english: return "en-US"
+        case .spanish: return "es-ES"
+        case .french: return "fr-FR"
+        case .japanese: return "ja-JP"
+        case .korean: return "ko-KR"
         }
     }
 }

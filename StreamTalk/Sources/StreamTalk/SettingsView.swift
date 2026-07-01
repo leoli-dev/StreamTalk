@@ -45,9 +45,9 @@ struct SettingsView: View {
     private var voiceTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("回复语言（AI 语音 + 文字）", selection: $config.voiceLanguage) {
-                ForEach(VoiceLanguage.allCases) { Text($0.displayName).tag($0) }
+                ForEach(config.selectedTTSProvider.supportedLanguages) { Text($0.displayName).tag($0) }
             }
-            Text("只控制 AI 怎么回（TTS 发音 + 文字语言）。你说什么语言由下面的「说话语言」单独控制，两者互不影响。")
+            Text("只控制 AI 怎么回（TTS 发音 + 文字语言），可选语言取决于下面选中的 TTS 提供商（如 MeloTTS 无粤语但多了西/法/日/韩）。你说什么语言由下面的「说话语言」单独控制，两者互不影响。")
                 .font(.caption2).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -57,9 +57,15 @@ struct SettingsView: View {
                 .font(.caption2).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            field("TTS 服务器地址（CosyVoice FastAPI）", text: $config.ttsServerURL)
-            Text("直连内网 CosyVoice API，例如 http://pc-lan.home:5055（app 直接调，无需本机代理）。"
-                 + "回复语言会作为 instruct 控制发音方言；STT 用系统自带，无地址。")
+            Divider()
+            Picker("TTS 提供商", selection: $config.selectedTTSProvider) {
+                ForEach(TTSProviderKind.allCases) { Text($0.displayName).tag($0) }
+            }
+            ForEach(TTSProviderKind.allCases) { kind in
+                TTSProviderEditor(kind: kind, settings: config.ttsBinding(for: kind))
+            }
+            Text("每个 TTS 提供商单独配置地址与参数，直连内网 API（app 直接调，无需本机代理）。"
+                 + "回复语言用作 CosyVoice 的 instruct 方言或 MeloTTS 的 language；STT 用系统自带，无地址。")
                 .font(.caption2).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -116,6 +122,41 @@ struct ProviderEditor: View {
                         }
                     } label: { Image(systemName: "list.bullet") }
                         .frame(width: 28)
+                }
+            }
+            .padding(.vertical, 4)
+        } label: {
+            Text(kind.displayName).font(.subheadline.weight(.medium))
+        }
+    }
+
+    private func labeled(_ label: String, _ text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            TextField(label, text: text).textFieldStyle(.roundedBorder)
+        }
+    }
+}
+
+/// Editor for one TTS provider's server URL / speed / provider-specific field.
+struct TTSProviderEditor: View {
+    let kind: TTSProviderKind
+    @Binding var settings: TTSProviderSettings
+    @State private var expanded = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $expanded) {
+            VStack(alignment: .leading, spacing: 6) {
+                labeled("地址", $settings.serverURL)
+                HStack {
+                    Text("语速").font(.caption2).foregroundStyle(.secondary)
+                    Slider(value: $settings.speed, in: 0.5...2.0)
+                    Text(String(format: "%.1f", settings.speed)).monospacedDigit()
+                }
+                if kind.usesSpeaker {
+                    labeled("说话人 speaker（可空，按语言自动选）", $settings.speaker)
+                } else {
+                    labeled("模式 mode（可空，用服务器默认）", $settings.mode)
                 }
             }
             .padding(.vertical, 4)

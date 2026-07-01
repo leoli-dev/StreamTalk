@@ -8,6 +8,10 @@ final class Config: ObservableObject {
 
     @Published var selectedProvider: ProviderKind { didSet { persist() } }
     @Published var providers: [ProviderKind: ProviderSettings] { didSet { persist() } }
+    @Published var selectedTTSProvider: TTSProviderKind {
+        didSet { if !loading { clampVoiceLanguage() }; persist() }
+    }
+    @Published var ttsProviders: [TTSProviderKind: TTSProviderSettings] { didSet { persist() } }
     /// Reply / TTS output language ONLY. Input (STT) language is `sttLocale`,
     /// controlled independently — speaking Cantonese while the AI replies in
     /// English is a valid combination.
@@ -25,6 +29,8 @@ final class Config: ObservableObject {
     private struct Snapshot: Codable {
         var selectedProvider: ProviderKind
         var providers: [String: ProviderSettings]
+        var selectedTTSProvider: TTSProviderKind?     // optional: absent in old snapshots
+        var ttsProviders: [String: TTSProviderSettings]?
         var voiceLanguage: String   // raw — tolerant of removed cases
         var ttsProxyURL: String
         var ttsServerURL: String?
@@ -69,8 +75,15 @@ final class Config: ObservableObject {
         if let b = env["STREAMTALK_LLM_BASE"] { providers[.local]?.baseURL = b }
         if let m = env["STREAMTALK_LLM_MODEL"] { providers[.local]?.model = m }
 
+        var ttsProviders: [TTSProviderKind: TTSProviderSettings] = [:]
+        for kind in TTSProviderKind.allCases { ttsProviders[kind] = .defaults(for: kind) }
+        if let s = env["STREAMTALK_TTS_SERVER"] { ttsProviders[.cosyvoice]?.serverURL = s }
+        if let s = env["STREAMTALK_MELOTTS_SERVER"] { ttsProviders[.melotts]?.serverURL = s }
+
         selectedProvider = .local
         self.providers = providers
+        selectedTTSProvider = .cosyvoice
+        self.ttsProviders = ttsProviders
         voiceLanguage = .cantonese
         ttsProxyURL = "http://127.0.0.1:8787"   // legacy, unused (app calls TTS directly)
         ttsServerURL = env["STREAMTALK_TTS_SERVER"] ?? "http://127.0.0.1:5055"
@@ -95,6 +108,28 @@ final class Config: ObservableObject {
         Binding(
             get: { self.providers[kind] ?? .defaults(for: kind) },
             set: { self.providers[kind] = $0 }
+        )
+    }
+
+    /// Settings for the currently-selected TTS provider (with a safe fallback).
+    var currentTTS: TTSProviderSettings {
+        ttsProviders[selectedTTSProvider] ?? .defaults(for: selectedTTSProvider)
+    }
+
+    /// Keep the reply/output language within what the selected TTS provider can
+    /// speak (e.g. MeloTTS has no Cantonese). Called when the provider changes.
+    private func clampVoiceLanguage() {
+        let supported = selectedTTSProvider.supportedLanguages
+        if !supported.contains(voiceLanguage) {
+            voiceLanguage = supported.first ?? voiceLanguage
+        }
+    }
+
+    /// Binding-friendly mutation for a specific TTS provider's settings.
+    func ttsBinding(for kind: TTSProviderKind) -> Binding<TTSProviderSettings> {
+        Binding(
+            get: { self.ttsProviders[kind] ?? .defaults(for: kind) },
+            set: { self.ttsProviders[kind] = $0 }
         )
     }
 
@@ -140,7 +175,10 @@ final class Config: ObservableObject {
         guard !loading else { return }
         var dict: [String: ProviderSettings] = [:]
         for (k, v) in providers { dict[k.rawValue] = v }
+        var ttsDict: [String: TTSProviderSettings] = [:]
+        for (k, v) in ttsProviders { ttsDict[k.rawValue] = v }
         let snap = Snapshot(selectedProvider: selectedProvider, providers: dict,
+                            selectedTTSProvider: selectedTTSProvider, ttsProviders: ttsDict,
                             voiceLanguage: voiceLanguage.rawValue, ttsProxyURL: ttsProxyURL,
                             ttsServerURL: ttsServerURL,
                             autoStartProxy: autoStartProxy, proxyScriptPath: proxyScriptPath,
@@ -168,6 +206,18 @@ final class Config: ObservableObject {
         // Migrate the Triton gRPC address back to the FastAPI address.
         let savedServer = snap.ttsServerURL ?? ttsServerURL
         ttsServerURL = savedServer.contains("18001") ? "http://pc-lan.home:5055" : savedServer
+        // TTS providers: restore saved entries, else migrate the legacy single
+        // server URL into the CosyVoice provider so upgraders keep their host.
+        selectedTTSProvider = snap.selectedTTSProvider ?? selectedTTSProvider
+        if let savedTTS = snap.ttsProviders {
+            var merged = ttsProviders
+            for (k, v) in savedTTS {
+                if let kind = TTSProviderKind(rawValue: k) { merged[kind] = v }
+            }
+            ttsProviders = merged
+        } else {
+            ttsProviders[.cosyvoice]?.serverURL = ttsServerURL
+        }
         autoStartProxy = snap.autoStartProxy ?? autoStartProxy
         proxyScriptPath = snap.proxyScriptPath ?? proxyScriptPath
         // Migrate: zh-HK was our old (wrong) Cantonese code → Apple's yue-CN.
@@ -178,6 +228,7 @@ final class Config: ObservableObject {
         systemPrompt = Self.legacySystemPrompts.contains(snap.systemPrompt)
             ? Self.defaultSystemPrompt : snap.systemPrompt
         temperature = snap.temperature
+        clampVoiceLanguage()   // restored provider may not speak the saved language
         loading = false
     }
 }
